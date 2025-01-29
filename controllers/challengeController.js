@@ -107,3 +107,28 @@ exports.completeChallenge = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+/**
+ * @desc Update challenge progress
+ * @route POST /challenges/:challengeID/progress
+ * @access Private
+ */
+exports.progressChallenge = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const { challengeID } = req.params;
+    const { progress } = req.body;
+
+    await pool.query(
+      `UPDATE UserChallenge
+       SET progress = ?
+       WHERE userID = ? AND challengeID = ?`,
+      [progress, userID, challengeID]
+    );
+
+    return res.json({ message: "Challenge progress updated." });
+  } catch (error) {
+    console.error("Error in progressChallenge:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
