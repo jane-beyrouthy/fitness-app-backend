@@ -124,3 +124,32 @@ exports.commentOnPost = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+/**
+ * @desc Get posts from friends (Feed)
+ * @route GET /posts/feed
+ * @access Private
+ */
+exports.getFeed = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+
+    // Retrieve posts from friends ordered by timestamp (newest first)
+    const [posts] = await pool.query(
+      `SELECT p.postID, p.content, p.imageURL, p.timestamp, 
+              u.userID, u.username, u.email
+       FROM Post p
+       JOIN UserFriend uf ON (p.userID = uf.friendID OR p.userID = uf.userID)
+       JOIN User u ON p.userID = u.userID
+       WHERE (uf.userID = ? OR uf.friendID = ?) 
+       AND uf.status = 'accepted'
+       ORDER BY p.timestamp DESC`,
+      [userID, userID]
+    );
+
+    return res.status(200).json({ posts });
+  } catch (error) {
+    console.error("Error in getFeed:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
