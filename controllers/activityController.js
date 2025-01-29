@@ -1,9 +1,8 @@
 const pool = require("../config/db");
-
 /**
- * 2. Log Activities/Post
- * -Logs an activity for a user in the Activity table
- * -Optional: Post an activity to the user's feed
+ * @desc Log a new fitness activity and optionally create a social post
+ * @route POST /activities/log
+ * @access Private
  */
 exports.logActivity = async (req, res) => {
   try {
