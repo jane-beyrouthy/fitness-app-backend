@@ -82,3 +82,28 @@ exports.joinChallenge = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+/**
+ * @desc Complete a challenge
+ * @route POST /challenges/:challengeID/complete
+ * @access Private
+ */
+exports.completeChallenge = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const { challengeID } = req.params;
+
+    // Update the status to "completed"
+    await pool.query(
+      `UPDATE UserChallenge
+       SET status = "completed"
+       WHERE userID = ? AND challengeID = ?`,
+      [userID, challengeID]
+    );
+
+    return res.json({ message: "Challenge marked as completed." });
+  } catch (error) {
+    console.error("Error in completeChallenge:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
