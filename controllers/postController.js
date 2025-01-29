@@ -2,7 +2,7 @@ const pool = require("../config/db");
 
 /**
  * @desc Like a post
- * @route POST /api/posts/:postID/like
+ * @route POST /posts/:postID/like
  * @access Private
  */
 exports.likePost = async (req, res) => {
@@ -41,7 +41,7 @@ exports.likePost = async (req, res) => {
     }
 
     // Insert like
-    await pool.query(
+    const [result] = await pool.query(
       "INSERT INTO Likes (postID, userID, timestamp) VALUES (?, ?, Now())",
       [postID, userID]
     );
@@ -51,13 +51,76 @@ exports.likePost = async (req, res) => {
       // Prevent self-notification
       await pool.query(
         "INSERT INTO Notification (userID, message, timestamp) VALUES (?, ?, Now())",
-        [postOwnerID, `Your post was liked by ${likerUsername}.`]
+        [postOwnerID, `${likerUsername} liked your post.`]
       );
     }
 
-    return res.status(201).json({ message: "Post liked successfully." });
+    return res
+      .status(201)
+      .json({ message: "Post liked successfully.", likeID: result.insertId });
   } catch (error) {
     console.error("Error in likePost:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
+
+/**
+ * @desc Comment on a post
+ * @route POST /posts/:postID/comment
+ * @access Private
+ */
+exports.commentOnPost = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+
+    // Retrieve the username of the commenter
+    const [userRows] = await pool.query(
+      "SELECT username FROM User WHERE userID = ?",
+      [userID]
+    );
+    if (userRows.length === 0) {
+      return res.status(400).json({ error: "Invalid user." });
+    }
+    const commenterUsername = userRows[0].username;
+
+    const { postID } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: "Comment content is required." });
+    }
+
+    // Retrieve the post owner
+    const [postRows] = await pool.query(
+      "SELECT userID FROM Post WHERE postID = ?",
+      [postID]
+    );
+    if (postRows.length === 0) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+    const postOwnerID = postRows[0].userID;
+
+    // Insert comment
+    const [result] = await pool.query(
+      "INSERT INTO Comment (postID, userID, content, timestamp) VALUES (?, ?, ?, Now())",
+      [postID, userID, content]
+    );
+
+    // Send notification to the post owner
+    if (postOwnerID !== userID) {
+      // Prevent self-notification
+      await pool.query(
+        "INSERT INTO Notification (userID, message, timestamp) VALUES (?, ?, Now())",
+        [postOwnerID, `${commenterUsername} commented on your post`]
+      );
+    }
+
+    return res.status(201).json({
+      message: "Comment added successfully.",
+      commentID: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error in commentOnPost:", error);
     return res.status(500).json({ error: "Server error." });
   }
 };
