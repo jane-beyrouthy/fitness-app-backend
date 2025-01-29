@@ -132,3 +132,21 @@ exports.progressChallenge = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+/**
+ * @desc Get all active challenges (endDate > today)
+ * @route GET /challenges/active
+ * @access Private
+ */
+exports.getActiveChallenges = async (req, res) => {
+  try {
+    const [challenges] = await pool.query(
+      `SELECT * FROM Challenge WHERE endDate > CURDATE() ORDER BY startDate DESC`
+    );
+
+    return res.json({ challenges });
+  } catch (error) {
+    console.error("Error in getActiveChallenges:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
