@@ -11,8 +11,13 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ error: "Authorization token required." });
   }
   try {
+    // Decode the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userID = decoded.userID;
+
+    // Attach the userID to req.user
+    req.user = { userID: decoded.userID };
+
+    // Proceed to the next middleware/controller
     next();
   } catch (error) {
     return res.status(401).json({ error: "Invalid token." });

@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
+const activityRoutes = require("./routes/activityRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/activity", activityRoutes);
 
 app.get("/", (req, res) => {
   res.send("Fitness app backend running");
