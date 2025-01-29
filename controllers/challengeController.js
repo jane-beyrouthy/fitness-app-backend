@@ -150,3 +150,23 @@ exports.getActiveChallenges = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+/**
+ * @desc Get all challenges created by the logged-in user
+ * @route GET /api/challenges/my-challenges
+ * @access Private
+ */
+exports.getUserChallenges = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const [challenges] = await pool.query(
+      `SELECT * FROM Challenge WHERE createdBy = ? ORDER BY startDate DESC`,
+      [userID]
+    );
+
+    return res.json({ challenges });
+  } catch (error) {
+    console.error("Error in getUserChallenges:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};

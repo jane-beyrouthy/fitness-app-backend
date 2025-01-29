@@ -6,6 +6,7 @@ const {
   completeChallenge,
   progressChallenge,
   getActiveChallenges,
+  getUserChallenges,
 } = require("../controllers/challengeController");
 const authMiddleware = require("../middleware/authMiddleware");
 
@@ -14,5 +15,6 @@ router.post("/:challengeID/join", authMiddleware, joinChallenge);
 router.post("/:challengeID/complete", authMiddleware, completeChallenge);
 router.post("/:challengeID/progress", authMiddleware, progressChallenge);
 router.get("/active", authMiddleware, getActiveChallenges);
+router.get("/user", authMiddleware, getUserChallenges);
 
 module.exports = router;
