@@ -49,3 +49,68 @@ exports.getActivitySummary = async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 };
+
+/**
+ * getChallengeSummary
+ * - Returns the user's ongoing and completed challenges
+ */
+exports.getChallengeSummary = async (req, res) => {
+  try {
+    const userID = req.user.userID;
+
+    // Fetch ongoing challenges
+    const [ongoingChallenges] = await pool.query(
+      `
+      SELECT
+        uc.participationID,
+        c.challengeID,
+        c.title,
+        c.description,
+        c.startDate,
+        c.endDate,
+        c.createdBy,
+        c.reward,
+        uc.status,
+        uc.progress,
+        uc.joinedAt
+      FROM userchallenge uc
+      JOIN challenge c ON uc.challengeID = c.challengeID
+      WHERE uc.userID = ?
+        AND uc.status = 'ongoing'
+    `,
+      [userID]
+    );
+
+    // Fetch completed challenges
+    const [completedChallenges] = await pool.query(
+      `
+      SELECT
+        uc.participationID,
+        c.challengeID,
+        c.title,
+        c.description,
+        c.startDate,
+        c.endDate,
+        c.createdBy,
+        c.reward,
+        uc.status,
+        uc.progress,
+        uc.joinedAt
+      FROM userchallenge uc
+      JOIN challenge c ON uc.challengeID = c.challengeID
+      WHERE uc.userID = ?
+        AND uc.status = 'completed'
+    `,
+      [userID]
+    );
+
+    // Return both lists
+    return res.json({
+      ongoing: ongoingChallenges,
+      completed: completedChallenges,
+    });
+  } catch (error) {
+    console.error("Error fetching challenge summary:", error);
+    return res.status(500).json({ error: "Server error." });
+  }
+};

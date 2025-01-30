@@ -8,6 +8,7 @@ const friendRoutes = require("./routes/friendRoutes");
 const postRoutes = require("./routes/postRoutes");
 const challengeRoutes = require("./routes/challengeRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const trackRoutes = require("./routes/trackRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ app.use("/friends", friendRoutes);
 app.use("/posts", postRoutes);
 app.use("/challenges", challengeRoutes);
 app.use("/notifications", notificationRoutes);
+app.use("/track", trackRoutes);
 
 app.get("/", (req, res) => {
   res.send("Fitness app backend running");
