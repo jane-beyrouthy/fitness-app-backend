@@ -4,28 +4,39 @@ const jwt = require("jsonwebtoken");
 
 exports.registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
+    const { firstName, lastName, username, email, password } = req.body;
+
+    if (!firstName || !lastName || !username || !email || !password) {
       return res.status(400).json({ error: "All fields are required." });
     }
-    // Check if email already exists
-    const [existing] = await pool.query(
-      "SELECT userID FROM User WHERE email = ?",
-      [email]
+
+    // Check if email or username already exists
+    const [existingUser] = await pool.query(
+      "SELECT userID FROM user WHERE email = ? OR username = ?",
+      [email, username]
     );
-    if (existing.length > 0) {
-      return res.status(400).json({ error: "Email already in use." });
+    if (existingUser.length > 0) {
+      return res
+        .status(400)
+        .json({ error: "Email or Username already in use." });
     }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    // Insert user
+
+    // Insert user into the database
     const [result] = await pool.query(
-      "INSERT INTO User (username, email, password) VALUES (?, ?, ?)",
-      [username, email, hashedPassword]
+      "INSERT INTO user (firstName, lastName, username, email, password) VALUES (?, ?, ?, ?, ?)",
+      [firstName, lastName, username, email, hashedPassword]
     );
+
     return res.status(201).json({
       message: "User registered successfully.",
       userID: result.insertId,
+      firstName: firstName,
+      lastName: lastName,
+      username: username,
+      email: email,
     });
   } catch (error) {
     console.error("Register error:", error);
