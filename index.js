@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const activityTypeRoutes = require("./routes/activityTypeRoutes");
 const friendRoutes = require("./routes/friendRoutes");
 const postRoutes = require("./routes/postRoutes");
 const challengeRoutes = require("./routes/challengeRoutes");
@@ -20,6 +21,7 @@ app.use(express.json());
 // Routes
 app.use("/auth", authRoutes);
 app.use("/activity", activityRoutes);
+app.use("/activity-types", activityTypeRoutes);
 app.use("/friends", friendRoutes);
 app.use("/posts", postRoutes);
 app.use("/challenges", challengeRoutes);
