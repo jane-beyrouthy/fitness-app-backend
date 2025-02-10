@@ -177,3 +177,81 @@ exports.getPostsFeed = async (req, res) => {
       .json({ error: "Server error. Please try again later." });
   }
 };
+
+/**
+ * @desc Get post details
+ * @route GET /posts/:postID/details
+ * @access Private
+ */
+exports.getPostDetails = async (req, res) => {
+  try {
+    const { postID } = req.params;
+
+    const [post] = await pool.query(
+      `SELECT 
+        p.postID, 
+        p.content, 
+        p.timestamp,
+        u.userID,
+        u.username,
+        u.firstName, 
+        u.lastName,
+        at.name AS activityTypeName,
+        a.duration,
+        a.caloriesBurned,
+        (SELECT COUNT(*) FROM likes WHERE likes.postID = p.postID) AS likeCount,
+        (SELECT COUNT(*) FROM comment WHERE comment.postID = p.postID) AS commentCount
+      FROM post p
+      JOIN user u ON p.userID = u.userID
+      LEFT JOIN activity a ON p.activityID = a.activityID
+      LEFT JOIN activitytype at ON a.activityTypeID = at.activityTypeID
+      WHERE p.postID = ?`,
+      [postID]
+    );
+
+    if (post.length === 0) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+
+    return res.status(200).json({ post: post[0] });
+  } catch (error) {
+    console.error("Error fetching post details:", error);
+    return res
+      .status(500)
+      .json({ error: "Server error. Please try again later." });
+  }
+};
+
+/**
+ * @desc Get all comments for a specific post
+ * @route GET /posts/:postID/comments-list
+ * @access Private
+ */
+exports.getPostComments = async (req, res) => {
+  try {
+    const { postID } = req.params;
+
+    const [comments] = await pool.query(
+      `SELECT 
+        c.commentID, 
+        c.content, 
+        c.timestamp,
+        u.userID, 
+        u.username, 
+        u.firstName, 
+        u.lastName,
+      FROM comment c
+      JOIN user u ON c.userID = u.userID
+      WHERE c.postID = ?
+      ORDER BY c.timestamp ASC`,
+      [postID]
+    );
+
+    return res.status(200).json({ comments });
+  } catch (error) {
+    console.error("Error fetching post comments:", error);
+    return res
+      .status(500)
+      .json({ error: "Server error. Please try again later." });
+  }
+};
