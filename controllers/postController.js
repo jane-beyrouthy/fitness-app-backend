@@ -126,30 +126,35 @@ exports.commentOnPost = async (req, res) => {
 };
 
 /**
- * @desc Get posts from friends (Feed)
+ * @desc Get all posts with like count and comment count
  * @route GET /posts/feed
  * @access Private
  */
-exports.getFeed = async (req, res) => {
+exports.getPostsFeed = async (req, res) => {
   try {
-    const userID = req.user.userID;
-
-    // Retrieve posts from friends ordered by timestamp (newest first)
-    const [posts] = await pool.query(
-      `SELECT p.postID, p.content, p.imageURL, p.timestamp, 
-              u.userID, u.username, u.email
-       FROM Post p
-       JOIN UserFriend uf ON (p.userID = uf.friendID OR p.userID = uf.userID)
-       JOIN User u ON p.userID = u.userID
-       WHERE (uf.userID = ? OR uf.friendID = ?) 
-       AND uf.status = 'accepted'
-       ORDER BY p.timestamp DESC`,
-      [userID, userID]
-    );
+    const [posts] = await pool.query(`
+      SELECT 
+        p.postID, 
+        p.activityID, 
+        p.userID, 
+        p.content, 
+        p.imageURL, 
+        p.timestamp, 
+        u.username, 
+        u.firstName, 
+        u.lastName,
+        (SELECT COUNT(*) FROM likes WHERE likes.postID = p.postID) AS likeCount,
+        (SELECT COUNT(*) FROM comment WHERE comment.postID = p.postID) AS commentCount
+      FROM post p
+      JOIN user u ON p.userID = u.userID
+      ORDER BY p.timestamp DESC
+    `);
 
     return res.status(200).json({ posts });
   } catch (error) {
-    console.error("Error in getFeed:", error);
-    return res.status(500).json({ error: "Server error." });
+    console.error("Error fetching posts feed:", error);
+    return res
+      .status(500)
+      .json({ error: "Server error. Please try again later." });
   }
 };
