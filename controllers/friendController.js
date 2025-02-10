@@ -18,22 +18,23 @@ exports.followUser = async (req, res) => {
     }
     const senderUsername = user[0].username;
 
-    const { friendEmail } = req.body;
-    if (!friendEmail) {
+    const { friendUsername } = req.body;
+    if (!friendUsername) {
       return res.status(400).json({ error: "Friend email is required." });
     }
 
-    // 1) Retrieve friend's userID and username
+    // 1) Retrieve friend's userID
     const [friendRows] = await pool.query(
-      "SELECT userID, username FROM User WHERE email = ?",
-      [friendEmail]
+      "SELECT userID FROM User WHERE username = ?",
+      [friendUsername]
     );
     if (friendRows.length === 0) {
-      return res.status(404).json({ error: "No user found with that email." });
+      return res
+        .status(404)
+        .json({ error: "No user found with that username." });
     }
 
     const friendID = friendRows[0].userID;
-    const friendUsername = friendRows[0].username;
     if (friendID === userID) {
       return res.status(400).json({ error: "You cannot follow yourself." });
     }
@@ -44,22 +45,24 @@ exports.followUser = async (req, res) => {
       [userID, friendID]
     );
 
-    if (existing.length > 0) {
+    if (existing.length > 0 && existing[0].status === "accepted") {
       return res
         .status(400)
-        .json({ error: "Already following or request pending." });
+        .json({ error: "You are already following this user." });
     }
 
-    // 3) Insert follow request
+    // 3) Insert follow
     await pool.query(
-      'INSERT INTO UserFriend (userID, friendID, status, createdAt) VALUES (?, ?, "pending", NOW())',
+      `INSERT INTO userfriend (userID, friendID, status, createdAt)
+       VALUES (?, ?, 'accepted', NOW())
+       ON DUPLICATE KEY UPDATE status = 'accepted', createdAt = NOW()`,
       [userID, friendID]
     );
 
     // 4) Send Notification
     await pool.query(
       "INSERT INTO Notification (userID, message, timestamp) VALUES (?, ?, NOW())",
-      [friendID, `You have a new friend request from ${senderUsername}`]
+      [friendID, `${senderUsername} is now following you.`]
     );
 
     return res.status(201).json({
@@ -67,7 +70,6 @@ exports.followUser = async (req, res) => {
       requestedTo: {
         userID: friendID,
         username: friendUsername,
-        email: friendEmail,
       },
     });
   } catch (error) {
@@ -79,84 +81,11 @@ exports.followUser = async (req, res) => {
 };
 
 /**
- * @desc Accept a friend request
- * @route POST /friends/accept
+ * @desc Unfollow a user (Change status to "rejected")
+ * @route POST /friends/unfollow
  * @access Private
  */
-exports.acceptRequest = async (req, res) => {
-  try {
-    const userID = req.user.userID; // from JWT
-
-    // Retrieve the username of the receiver
-    const [user] = await pool.query(
-      "SELECT username FROM User WHERE userID = ?",
-      [userID]
-    );
-    if (user.length === 0) {
-      return res.status(400).json({ error: "Invalid user." });
-    }
-    const receiverUsername = user[0].username;
-
-    const { friendID } = req.body;
-    if (!friendID) {
-      return res.status(400).json({ error: "Friend ID is required." });
-    }
-
-    // Check if the friend request exists and is pending
-    const [rows] = await pool.query(
-      'SELECT * FROM UserFriend WHERE userID = ? AND friendID = ? AND status = "pending"',
-      [friendID, userID]
-    );
-
-    if (rows.length === 0) {
-      return res.status(400).json({ error: "No pending request found." });
-    }
-
-    // Retrieve friend's username
-    const [friendRows] = await pool.query(
-      "SELECT username, email FROM User WHERE userID = ?",
-      [friendID]
-    );
-    if (friendRows.length === 0) {
-      return res.status(400).json({ error: "Invalid friend ID." });
-    }
-    const friendUsername = friendRows[0].username;
-    const friendEmail = friendRows[0].email;
-
-    // Update the status to "accepted"
-    await pool.query(
-      'UPDATE UserFriend SET status = "accepted" WHERE userID = ? AND friendID = ?',
-      [friendID, userID]
-    );
-
-    // Send Notification
-    await pool.query(
-      "INSERT INTO Notification (userID, message) VALUES (?, ?)",
-      [friendID, `Your friend request was accepted by ${receiverUsername}`]
-    );
-
-    return res.status(200).json({
-      message: "Friend request accepted.",
-      friend: {
-        userID: friendID,
-        username: friendUsername,
-        email: friendEmail,
-      },
-    });
-  } catch (error) {
-    console.error("Error in acceptRequest:", error);
-    return res
-      .status(500)
-      .json({ error: "Server error. Please try again later." });
-  }
-};
-
-/**
- * @desc Reject a friend request or unfollow (Change status to "rejected")
- * @route POST /friends/reject
- * @access Private
- */
-exports.rejectRequest = async (req, res) => {
+exports.unfollowUser = async (req, res) => {
   try {
     const userID = req.user.userID;
     const { friendID } = req.body;
@@ -165,53 +94,48 @@ exports.rejectRequest = async (req, res) => {
       return res.status(400).json({ error: "Friend ID is required." });
     }
 
-    // Check if a friendship or request exists
+    // Check if a following relationship exists
     const [rows] = await pool.query(
       `SELECT status FROM UserFriend 
-       WHERE ((userID = ? AND friendID = ?) OR (userID = ? AND friendID = ?))`,
-      [userID, friendID, friendID, userID]
+       WHERE userID = ? AND friendID = ?`,
+      [userID, friendID]
     );
 
-    if (rows.length === 0) {
+    if (rows.length === 0 && rows[0].status !== "accepted") {
       return res
         .status(400)
-        .json({ error: "No friend request or friendship found." });
+        .json({ error: "You are not following this user." });
     }
 
     const currentStatus = rows[0].status;
 
-    // If the current status is neither pending nor accepted, we shouldn't update
-    if (currentStatus !== "pending" && currentStatus !== "accepted") {
-      return res
-        .status(400)
-        .json({ error: `Cannot update status from "${currentStatus}".` });
+    if (currentStatus === "rejected") {
+      return res.status(400).json({ error: "Already unfollowed." });
     }
 
-    // Update the status to "rejected" regardless of whether it was pending or accepted
+    // Update the status to "rejected"
     await pool.query(
       `UPDATE UserFriend 
        SET status = "rejected" 
-       WHERE ((userID = ? AND friendID = ?) OR (userID = ? AND friendID = ?))`,
+       WHERE userID = ? AND friendID = ?`,
       [userID, friendID, friendID, userID]
     );
 
     // Retrieve the friend's username and email
     const [friendRows] = await pool.query(
-      "SELECT username, email FROM User WHERE userID = ?",
+      "SELECT username FROM User WHERE userID = ?",
       [friendID]
     );
     if (friendRows.length === 0) {
       return res.status(400).json({ error: "Invalid friend ID." });
     }
     const friendUsername = friendRows[0].username;
-    const friendEmail = friendRows[0].email;
 
     return res.status(200).json({
       message: `Friendship status updated to "rejected".`,
       updatedUser: {
         userID: friendID,
         username: friendUsername,
-        email: friendEmail,
       },
     });
   } catch (error) {
