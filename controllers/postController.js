@@ -231,6 +231,11 @@ exports.getPostComments = async (req, res) => {
   try {
     const { postID } = req.params;
 
+    // Check if postID is provided and is a number
+    if (!postID || isNaN(postID)) {
+      return res.status(400).json({ error: "Invalid or missing post ID." });
+    }
+
     const [comments] = await pool.query(
       `SELECT 
         c.commentID, 
@@ -239,7 +244,7 @@ exports.getPostComments = async (req, res) => {
         u.userID, 
         u.username, 
         u.firstName, 
-        u.lastName,
+        u.lastName
       FROM comment c
       JOIN user u ON c.userID = u.userID
       WHERE c.postID = ?
@@ -247,7 +252,7 @@ exports.getPostComments = async (req, res) => {
       [postID]
     );
 
-    return res.status(200).json({ comments });
+    return res.status(200).json({ comments } || []);
   } catch (error) {
     console.error("Error fetching post comments:", error);
     return res
