@@ -126,13 +126,16 @@ exports.commentOnPost = async (req, res) => {
 };
 
 /**
- * @desc Get all posts with like count, comment count, and activity details
+ * @desc Get posts from users the logged-in user is following
  * @route GET /posts/feed
  * @access Private
  */
 exports.getPostsFeed = async (req, res) => {
   try {
-    const [posts] = await pool.query(`
+    const userID = req.user.userID; // Get logged-in user ID from JWT
+
+    const [posts] = await pool.query(
+      `
       SELECT 
         p.postID, 
         p.activityID, 
@@ -151,8 +154,20 @@ exports.getPostsFeed = async (req, res) => {
       JOIN user u ON p.userID = u.userID
       LEFT JOIN activity a ON p.activityID = a.activityID
       LEFT JOIN activitytype at ON a.activityTypeID = at.activityTypeID
+      WHERE p.userID IN (
+        SELECT friendID FROM userfriend WHERE userID = ? AND status = 'accepted'
+      )
       ORDER BY p.timestamp DESC
-    `);
+    `,
+      [userID]
+    );
+
+    // Check if the feed is empty
+    if (posts.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No posts available. Your feed is empty." });
+    }
 
     return res.status(200).json({ posts });
   } catch (error) {
