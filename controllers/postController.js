@@ -126,7 +126,7 @@ exports.commentOnPost = async (req, res) => {
 };
 
 /**
- * @desc Get all posts with like count and comment count
+ * @desc Get all posts with like count, comment count, and activity details
  * @route GET /posts/feed
  * @access Private
  */
@@ -144,9 +144,14 @@ exports.getPostsFeed = async (req, res) => {
         u.firstName, 
         u.lastName,
         (SELECT COUNT(*) FROM likes WHERE likes.postID = p.postID) AS likeCount,
-        (SELECT COUNT(*) FROM comment WHERE comment.postID = p.postID) AS commentCount
+        (SELECT COUNT(*) FROM comment WHERE comment.postID = p.postID) AS commentCount,
+        a.duration,
+        a.caloriesBurned,
+        at.name AS activityTypeName
       FROM post p
       JOIN user u ON p.userID = u.userID
+      LEFT JOIN activity a ON p.activityID = a.activityID
+      LEFT JOIN activitytype at ON a.activityTypeID = at.activityTypeID
       ORDER BY p.timestamp DESC
     `);
 
