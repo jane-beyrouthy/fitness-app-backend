@@ -157,7 +157,7 @@ exports.getFriends = async (req, res) => {
 
     // Retrieve friends list where status is "accepted"
     const [friends] = await pool.query(
-      `SELECT uf.friendID AS friendID, u.username, u.email
+      `SELECT uf.friendID AS friendID, u.firstName, u.lastName, u.username, u.email
        FROM UserFriend uf
        JOIN User u ON uf.friendID = u.userID
        WHERE uf.userID = ? AND uf.status = "accepted"`,
