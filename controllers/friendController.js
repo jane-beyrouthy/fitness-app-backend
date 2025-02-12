@@ -45,19 +45,30 @@ exports.followUser = async (req, res) => {
       [userID, friendID]
     );
 
-    if (existing.length > 0 && existing[0].status === "accepted") {
-      return res
-        .status(400)
-        .json({ error: "You are already following this user." });
-    }
+    if (existing.length > 0) {
+      const currentStatus = existing[0].status;
 
-    // 3) Insert follow
-    await pool.query(
-      `INSERT INTO userfriend (userID, friendID, status, createdAt)
-       VALUES (?, ?, 'accepted', NOW())
-       ON DUPLICATE KEY UPDATE status = 'accepted', createdAt = NOW()`,
-      [userID, friendID]
-    );
+      if (currentStatus === "accepted") {
+        return res
+          .status(400)
+          .json({ error: "You are already following this user." });
+      }
+
+      // If the relationship exists but was previously "rejected", update it
+      await pool.query(
+        `UPDATE userfriend 
+         SET status = 'accepted', createdAt = NOW() 
+         WHERE userID = ? AND friendID = ?`,
+        [userID, friendID]
+      );
+    } else {
+      // If the relationship does not exist, insert a new row
+      await pool.query(
+        `INSERT INTO userfriend (userID, friendID, status, createdAt) 
+         VALUES (?, ?, 'accepted', NOW())`,
+        [userID, friendID]
+      );
+    }
 
     // 4) Send Notification
     await pool.query(
