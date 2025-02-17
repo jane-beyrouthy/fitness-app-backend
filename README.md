@@ -15,7 +15,9 @@ fitness-backend/
 │   ├── friendController.js     # Friend requests and follow system
 │   ├── challengeController.js  # Fitness challenges
 │   ├── notificationController.js # Notifications management
-│   └── trackController.js      # User activity tracking
+│   ├── trackController.js      # User activity tracking
+│   └── userController.js      # Search users
+
 ├── routes/
 │   ├── authRoutes.js       # Authentication routes
 │   ├── activityRoutes.js   # Activity tracking routes
@@ -23,7 +25,8 @@ fitness-backend/
 │   ├── friendRoutes.js     # Friend system routes
 │   ├── challengeRoutes.js  # Challenge-related routes
 │   ├── notificationRoutes.js # Notification-related routes
-│   └── trackRoutes.js      # Tracking routes
+│   ├── trackRoutes.js      # Tracking routes
+│   └── userRoutes.js       # Search routes
 ├── middleware/
 │   └── authMiddleware.js   # JWT authentication middleware
 ├── .env                    # Environment variables
@@ -84,9 +87,15 @@ The server will run on `http://localhost:3000`.
 ## 👥 Friend System
 
 - **Follow a Friend:** `POST /friends/follow`
-- **Accept Friend Request:** `POST /friends/accept`
-- **Reject Friend Request:** `POST /friends/reject`
+- **Unfollow a Friend:** `POST /friends/unfollow`
 - **Get Friends List:** `GET /friends`
+
+##📢 Social Feed & Posts
+- **Like a Post:** `POST /posts/:postID/like`
+- **Add a Comment to a Post:** `POST /posts/:postID/comment`
+- **Get Posts Feed:** `GET /posts/feed`
+- **Get Details of a Speciifc Post:** `GET /posts/:postID/details`
+- **Get Comments for a Specific Post:** `GET posts/:postID/comments-list`
 
 ## 🏆 Challenges
 
@@ -100,22 +109,6 @@ The server will run on `http://localhost:3000`.
 
 - **Get Unread Notifications:** `GET /notifications`
 - **Mark Notifications as Read:** `POST /notifications/read`
-
-## 📡 API Testing
-
-You can test the API using **Postman** or **cURL**:
-
-```bash
-curl -X POST http://localhost:3000/auth/login -H "Content-Type: application/json" -d '{"email": "test@example.com", "password": "123456"}'
-```
-
-## 📌 To-Do
-
-- ✅ Implement user authentication with JWT
-- ✅ Friend requests & notifications
-- ✅ Challenge tracking
-- 🚀 Add real-time notifications with WebSockets
-- 🚀 Implement leaderboard & analytics
 
 ## 📜 License
 
