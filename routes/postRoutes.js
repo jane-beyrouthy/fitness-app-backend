@@ -1,3 +1,20 @@
+/**
+ * Express router for handling post-related routes
+ * @module routes/postRoutes
+ *
+ * @requires express
+ * @requires ../controllers/postController
+ * @requires ../middleware/authMiddleware
+ *
+ * Routes:
+ * - POST /:postID/like - Like a post
+ * - POST /:postID/comment - Add a comment to a post
+ * - GET /feed - Get posts feed
+ * - GET /:postID/details - Get details of a specific post
+ * - GET /:postID/comments-list - Get comments for a specific post
+ *
+ * @type {express.Router}
+ */
 const express = require("express");
 const router = express.Router();
 const {
