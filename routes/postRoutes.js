@@ -12,6 +12,7 @@
  * - GET /feed - Get posts feed
  * - GET /:postID/details - Get details of a specific post
  * - GET /:postID/comments-list - Get comments for a specific post
+ * - Get /my-posts - Get all posts of the logged-in user
  *
  * @type {express.Router}
  */
@@ -23,6 +24,7 @@ const {
   getPostsFeed,
   getPostDetails,
   getPostComments,
+  getUserPosts,
 } = require("../controllers/postController");
 const authMiddleware = require("../middleware/authMiddleware");
 
@@ -31,5 +33,6 @@ router.post("/:postID/comment", authMiddleware, commentOnPost);
 router.get("/feed", authMiddleware, getPostsFeed);
 router.get("/:postID/details", authMiddleware, getPostDetails);
 router.get("/:postID/comments-list", authMiddleware, getPostComments);
+router.get("/my-posts", authMiddleware, getUserPosts);
 
 module.exports = router;

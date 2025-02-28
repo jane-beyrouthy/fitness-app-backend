@@ -260,3 +260,53 @@ exports.getPostComments = async (req, res) => {
       .json({ error: "Server error. Please try again later." });
   }
 };
+
+/**
+ * @desc Get all posts of the logged-in user
+ * @route GET /posts/my-posts
+ * @access Private
+ */
+exports.getUserPosts = async (req, res) => {
+  try {
+    const userID = req.user.userID; // Get the logged-in user's ID from JWT
+
+    const [posts] = await pool.query(
+      `
+      SELECT 
+        p.postID, 
+        p.activityID, 
+        p.content, 
+        p.timestamp, 
+        u.firstName, 
+        u.lastName, 
+        u.username, 
+        (SELECT COUNT(*) FROM likes WHERE likes.postID = p.postID) AS likeCount,
+        (SELECT COUNT(*) FROM comment WHERE comment.postID = p.postID) AS commentCount,
+        at.name AS activityTypeName,
+        a.duration,
+        a.caloriesBurned
+      FROM post p
+      JOIN user u ON p.userID = u.userID  
+      LEFT JOIN activity a ON p.activityID = a.activityID
+      LEFT JOIN activitytype at ON a.activityTypeID = at.activityTypeID
+      WHERE p.userID = ?
+      ORDER BY p.timestamp DESC
+    `,
+      [userID]
+    );
+
+    // Check if the user has any posts
+    if (posts.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "You haven't created any posts yet." });
+    }
+
+    return res.status(200).json({ posts });
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    return res
+      .status(500)
+      .json({ error: "Server error. Please try again later." });
+  }
+};
